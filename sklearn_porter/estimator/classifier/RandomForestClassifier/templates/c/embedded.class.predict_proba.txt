@@ -1,0 +1,18 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+
+{method}
+
+int main(int argc, const char * argv[]) {{
+    float features[argc-1];
+    int i;
+    for (i = 1; i < argc; i++) {{
+        features[i-1] = atof(argv[i]);
+    }}
+    float* r = {method_name}(features);
+    for (i = 0; i < sizeof(r) / sizeof(float) + 1; i++) {{
+            printf("%lf\n", r[i]);
+    }}
+    return 0;
+}}

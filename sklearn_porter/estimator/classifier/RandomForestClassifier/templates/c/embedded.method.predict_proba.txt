@@ -1,0 +1,34 @@
+{methods}
+float* {method_name} (float features[]) {{
+    int n_classes = {n_classes};
+    float classes[{n_estimators}][n_classes];
+    float* r_classes = (float*) calloc(n_classes, sizeof(float));
+    int i;
+    int j;
+    for (i = 0; i < {n_estimators}; i++) {{
+        for (j = 0; j < n_classes; j++) {{
+            classes[i][j] = 0;
+        }}
+    }}
+
+    float* pr;
+    {method_calls}
+
+    float class_sum[n_classes];
+    for (i = 0; i < n_classes; i++) {{
+        class_sum[i] = 0;
+        r_classes[i] = 0;
+    }}
+
+    for (i = 0; i < {n_estimators}; i++) {{
+        for (j = 0; j < n_classes; j++) {{
+            class_sum[j] += classes[i][j];
+        }}
+    }}
+
+    for (j = 0; j < n_classes; j++) {{
+        r_classes[j] = class_sum[j] / {n_estimators}.0;
+    }}
+
+    return r_classes;
+}}

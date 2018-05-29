@@ -1,0 +1,4 @@
+pr = {method_name}(features);
+for (i = 0; i < n_classes; i++) {{
+    classes[{method_id}][i] = pr[i];
+}}

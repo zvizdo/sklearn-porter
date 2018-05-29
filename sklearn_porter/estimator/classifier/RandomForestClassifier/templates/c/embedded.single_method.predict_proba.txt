@@ -1,0 +1,14 @@
+float* {method_name}_{method_id}(float features[]) {{
+    float* classes = (float*) calloc({n_classes}, sizeof(float));
+
+    {tree_branches}
+    float class_sum = 0.0;
+    int i;
+    for (i = 0; i < {n_classes}; i++) {{
+        class_sum = class_sum + classes[i];
+    }}
+    for (i = 0; i < {n_classes}; i++) {{
+        classes[i] = classes[i] / class_sum;
+    }}
+    return classes;
+}}

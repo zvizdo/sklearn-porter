@@ -17,7 +17,7 @@ class RandomForestClassifier(Classifier):
     sklearn.ensemble.RandomForestClassifier.html
     """
 
-    SUPPORTED_METHODS = ['predict']
+    SUPPORTED_METHODS = ['predict', 'predict_proba']
     SUPPORTED_LANGUAGES = ['c', 'go', 'java', 'js', 'php', 'ruby']
 
     # @formatter:off
@@ -148,6 +148,15 @@ class RandomForestClassifier(Classifier):
             # Embedded:
             return self.predict('embedded')
 
+        if self.target_method == 'predict_proba':
+            # Exported:
+            if export_data and os.path.isdir(export_dir):
+                self.export_data(export_dir, export_filename,
+                                 export_append_checksum)
+                return self.predict_proba('exported')
+            # Embedded:
+            return self.predict_proba('embedded')
+
     def predict(self, temp_type):
         """
         Transpile the predict method.
@@ -171,6 +180,32 @@ class RandomForestClassifier(Classifier):
         # Embedded:
         if temp_type == 'embedded':
             method = self.create_method_embedded()
+            return self.create_class_embedded(method)
+
+    def predict_proba(self, temp_type):
+        """
+        Transpile the predict_proba method.
+
+        Parameters
+        ----------
+        :param temp_type : string
+            The kind of export type (embedded, separated, exported).
+
+        Returns
+        -------
+        :return : string
+            The transpiled predict method as string.
+        """
+        # Exported:
+        if temp_type == 'exported':
+            temp = self.temp('exported.class.predict_proba.predict_proba')
+            return temp.format(class_name=self.class_name,
+                               method_name=self.method_name,
+                               n_features=self.n_features,
+                               n_estimators=len(self.estimators))
+        # Embedded:
+        if temp_type == 'embedded':
+            method = self.create_method_embedded_predict_proba()
             return self.create_class_embedded(method)
 
     def export_data(self, directory, filename, with_md5_hash=False):
@@ -281,7 +316,7 @@ class RandomForestClassifier(Classifier):
             estimator.tree_.children_left, estimator.tree_.children_right,
             estimator.tree_.threshold, estimator.tree_.value, indices, 0, 1)
 
-        temp_single_method = self.temp('embedded.single_method')
+        temp_single_method = self.temp('embedded.single_method') if self.target_method == 'predict' else self.temp('embedded.single_method.predict_proba')
         return temp_single_method.format(method_name=self.method_name,
                                          method_id=str(estimator_index),
                                          n_classes=self.n_classes,
@@ -303,7 +338,8 @@ class RandomForestClassifier(Classifier):
         for idx, estimator in enumerate(self.estimators):
             fn_name = self.method_name + '_' + str(idx)
             fn_name = temp_method_calls.format(class_name=self.class_name,
-                                               method_name=fn_name)
+                                               method_name=fn_name,
+                                               method_id=idx)
             fn_names.append(fn_name)
         fn_names = '\n'.join(fn_names)
         fn_names = self.indent(fn_names, n_indents=1, skipping=True)
@@ -326,6 +362,47 @@ class RandomForestClassifier(Classifier):
                                  n_classes=self.n_classes)
         return self.indent(out, n_indents=n_indents, skipping=True)
 
+    def create_method_embedded_predict_proba(self):
+        """
+        Build the estimator methods or functions.
+
+        Returns
+        -------
+        :return : string
+            The built methods as merged string.
+        """
+        # Generate method or function names:
+        fn_names = []
+        temp_method_calls = self.temp('embedded.method_calls.predict_proba',
+                                      n_indents=2, skipping=True)
+        for idx, estimator in enumerate(self.estimators):
+            fn_name = self.method_name + '_' + str(idx)
+            fn_name = temp_method_calls.format(class_name=self.class_name,
+                                               method_name=fn_name,
+                                               method_id=idx,
+                                               n_estimators=self.n_estimators)
+            fn_names.append(fn_name)
+        fn_names = '\n'.join(fn_names)
+        fn_names = self.indent(fn_names, n_indents=1, skipping=True)
+
+        # Generate related trees:
+        fns = []
+        for idx, estimator in enumerate(self.estimators):
+            tree = self.create_single_method(idx, estimator)
+            fns.append(tree)
+        fns = '\n'.join(fns)
+
+        # Merge generated content:
+        n_indents = 1 if self.target_language in ['java', 'js',
+                                                  'php', 'ruby'] else 0
+        temp_method = self.temp('embedded.method.predict_proba')
+        out = temp_method.format(class_name=self.class_name,
+                                 method_name=self.method_name,
+                                 method_calls=fn_names, methods=fns,
+                                 n_estimators=self.n_estimators,
+                                 n_classes=self.n_classes)
+        return self.indent(out, n_indents=n_indents, skipping=True)
+
     def create_class_embedded(self, method):
         """
         Build the estimator class.
@@ -335,7 +412,10 @@ class RandomForestClassifier(Classifier):
         :return : string
             The built class as string.
         """
+
         temp_class = self.temp('embedded.class')
+        if self.target_method == 'predict_proba':
+            temp_class = self.temp('embedded.class.predict_proba')
         return temp_class.format(class_name=self.class_name,
                                  method_name=self.method_name,
                                  method=method, n_features=self.n_features)
