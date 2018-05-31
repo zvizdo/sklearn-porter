@@ -11,7 +11,7 @@ int main(int argc, const char * argv[]) {{
         features[i-1] = atof(argv[i]);
     }}
     float* r = {method_name}(features);
-    for (i = 0; i < sizeof(r) / sizeof(float) + 1; i++) {{
+    for (i = 0; i < sizeof(r) / sizeof(float); i++) {{
             printf("%lf\n", r[i]);
     }}
     return 0;
